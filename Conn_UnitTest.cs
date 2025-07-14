@@ -104,13 +104,52 @@
                     Assert.GreaterOrEqual(refocxo.Temperature, 10);
                     Assert.GreaterOrEqual(refocxo.Voltage, 11);
                     Assert.GreaterOrEqual(refocxo.Current, 0.01);
-
-                    var legalcyLocks = conn.LegacyLocks();
-                    Assert.AreEqual(true, legalcyLocks.IsLocked1);
-                    Assert.AreEqual(false, legalcyLocks.IsLocked2);
-                    Assert.AreEqual(true, legalcyLocks.IsLocked3);
                 });
             }
         }
+
+        [Test]
+        public void Log()
+        {
+            using (var conn = new Connection())
+            {
+
+                var myDoc = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+                conn.Open(COM_PORT, $"{myDoc}\\MAAC241213");
+                var name = conn.WhoIs();
+                Console.WriteLine(name);
+                Assert.AreEqual("MAAC241213.FW", name);
+
+                Assert.Multiple(() =>
+                {
+                    var status1 = conn.Ocxo1Status();
+
+                    Assert.AreEqual(true, status1.IsLocked);
+                    Assert.GreaterOrEqual(status1.Temperature, 10);
+                    Assert.GreaterOrEqual(status1.Voltage, 11);
+                    Assert.GreaterOrEqual(status1.Current, 0.01);
+
+                    var status2 = conn.Ocxo2Status();
+                    //Assert.AreEqual(true, status2.IsLocked);
+                    Assert.GreaterOrEqual(status2.Temperature, 10);
+                    Assert.GreaterOrEqual(status2.Voltage, 11);
+                    //Assert.GreaterOrEqual(status2.Current, 0.01);
+
+                    var status3 = conn.Ocxo3Status();
+                    Assert.AreEqual(true, status3.IsLocked);
+                    Assert.GreaterOrEqual(status3.Temperature, 10);
+                    Assert.GreaterOrEqual(status3.Voltage, 11);
+                    Assert.GreaterOrEqual(status3.Current, 0.01);
+
+                    var refocxo = conn.RefOcxoStatus();
+                    Assert.AreEqual(false, refocxo.ExtRef);
+                    Assert.GreaterOrEqual(refocxo.Temperature, 10);
+                    Assert.GreaterOrEqual(refocxo.Voltage, 11);
+                    Assert.GreaterOrEqual(refocxo.Current, 0.01);
+                });
+            }
+        }
+
     }
 }

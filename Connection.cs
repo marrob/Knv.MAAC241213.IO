@@ -3,8 +3,10 @@ namespace Knv.MAAC241213.IO
 {
     using System;
     using System.Collections.Generic;
-    using System.IO.Ports;
     using System.Globalization;
+    using System.IO;
+    using System.IO.Ports;
+    using System.Text;
 
     public class OcxoStatus
     {
@@ -36,6 +38,7 @@ namespace Knv.MAAC241213.IO
         /// - Legacy Triclock: támogatja, és a LegacyLocks-segítségével egyszerübben elérhető  <br/>
         /// </summary>
         public bool IsLocked { get; set; }
+
     }
 
     public class RefOcxoStatus
@@ -61,26 +64,17 @@ namespace Knv.MAAC241213.IO
         /// - Legacy Triclock: nem támogatja, értéke 152.918C ±1%<br/>
         /// </summary>
         public float Temperature { get; set; }
+
+        /// <summary>
+        /// I2C Triclock: nem támogatja
+        /// Legacy Triclock: támogatja
+        /// </summary>
+        public float LegacyTemperature { get; set; }
+
         /// <summary>
         /// true esetén a Refencia órajel külső, false-esteén a belső
         /// </summary>
         public bool ExtRef { get; set; }
-    }
-
-    public class LegacyLocks
-    {
-        /// <summary>
-        /// ha true, akkor a 24MHz-es óra lockolt
-        /// </summary>
-        public bool IsLocked1 { get; set; }
-        /// <summary>
-        /// ha true, akkor a 20MHz-es óra lockolt
-        /// </summary>
-        public bool IsLocked2 { get; set; }
-        /// <summary>
-        /// ha true, akkor 25MHz-es óra lockolt
-        /// </summary>
-        public bool IsLocked3 { get; set; }
     }
 
     public class Connection : IDisposable
@@ -95,7 +89,6 @@ namespace Knv.MAAC241213.IO
 
         public event EventHandler ConnectionChanged;
         public event EventHandler ErrorHappened;
-        public bool TracingEnable { get; set; } = false;
 
         public Queue<string> TraceQueue = new Queue<string>();
         public int TraceLines { get; private set; }
@@ -112,6 +105,8 @@ namespace Knv.MAAC241213.IO
             }
         }
 
+        public string NewLine { get { return "\r\n"; } }
+
         public int ReadTimeout 
         {
             get { return _sp.ReadTimeout; }
@@ -123,13 +118,30 @@ namespace Knv.MAAC241213.IO
             return SerialPort.GetPortNames();
         }
 
+
+        private string _logDirectory;
+
+
+        /// <summary>
+        /// - A Logolás(Tracing) az Open-el kezdődik és a Dispose-al záródik... <br/>
+        /// - logDirectory: csak a log könyvtár elérési újtja kell, a fájlnevet naponta generálja, ajánlott a Public/Documents használata...<br/>
+        /// - Minden esetben zárd a portot... <br/>
+        /// - Ajnlott a using() használata esetén miden zárásos dolog megtörténik... <br/>
+        /// </summary>
+        /// <param name="port">pl: COM1</param>
+        public void Open(string port, string logDirectory)
+        { 
+            _logDirectory = logDirectory;
+            Open(port);
+        }
         /// <summary>
         /// - Minden esetben zárd a portot... <br/>
         /// - Ajnlott a using() használata... <br/>
         /// </summary>
-        /// <param name="port"></param>
+        /// <param name="port">pl: COM1</param>
         public void Open(string port)
         {
+            _logDirectory = string.Empty;
             try
             {
                 _sp = new SerialPort(port)
@@ -283,10 +295,11 @@ namespace Knv.MAAC241213.IO
 
         internal void Trace(string msg)
         {
-            if (!TracingEnable)
-                return;
-            TraceLines++;
-            TraceQueue.Enqueue(DateTime.Now.ToString(GenericTimestampFormat) + " " + msg);
+            if (!string.IsNullOrEmpty(_logDirectory))
+            {
+                TraceLines++;
+                TraceQueue.Enqueue(DateTime.Now.ToString(GenericTimestampFormat) + " " + msg);
+            }
         }
 
         public void TraceClear()
@@ -484,35 +497,8 @@ namespace Knv.MAAC241213.IO
                     retval.Voltage = float.Parse(valueArr[0], NumberStyles.Float, CultureInfo.GetCultureInfo("en-US"));
                     retval.Current = float.Parse(valueArr[1], NumberStyles.Float, CultureInfo.GetCultureInfo("en-US"));
                     retval.Temperature = float.Parse(valueArr[2], NumberStyles.Float, CultureInfo.GetCultureInfo("en-US"));
-                    retval.ExtRef = valueArr[3] == "E";
-                }
-                catch (Exception ex)
-                {
-                    Trace($"IO-ERROR: {ex.Message}");
-                }
-            }
-            return retval;
-        }
-
-
-        /// <summary>
-        /// - a Legacy Triclock lockjai <br/>
-        /// - ha true, akkor Lock-olt
-        /// </summary>
-        public LegacyLocks LegacyLocks()
-        {
-            var retval = new LegacyLocks();
-            var resp = WriteRead("TRICLOCK:LEGACY:STAT?");
-            if (resp == null)
-                return null;
-            else
-            {
-                string[] valueArr = resp.Split(new char[] { ';' });
-                try
-                {
-                    retval.IsLocked1 = valueArr[0] == "L";
-                    retval.IsLocked2 = valueArr[1] == "L";
-                    retval.IsLocked3 = valueArr[2] == "L";
+                    retval.LegacyTemperature = float.Parse(valueArr[3], NumberStyles.Float, CultureInfo.GetCultureInfo("en-US"));
+                    retval.ExtRef = valueArr[4] == "E";
                 }
                 catch (Exception ex)
                 {
@@ -529,6 +515,31 @@ namespace Knv.MAAC241213.IO
                 _sp.Close();
                 _sp.Dispose();
             }
+
+            if(!string.IsNullOrEmpty(_logDirectory))
+               TracingToFile( _logDirectory );
+        }
+
+
+        public void TracingToFile(string directory)
+        {
+            if (!File.Exists(directory))
+                Directory.CreateDirectory(directory);
+
+            var dt = DateTime.Now;
+            var filePath = $"{directory}\\aac_io_log_{dt:yyyy}{dt:MM}{dt:dd}.txt";
+
+            var fileWrite = new StreamWriter(filePath, true, Encoding.ASCII);
+            fileWrite.NewLine = NewLine;
+
+            for (int i = 0; i < TraceQueue.Count; i++)
+            {
+                string line = TraceQueue.Dequeue();
+                fileWrite.Write(line + NewLine);
+            }
+
+            fileWrite.Flush();
+            fileWrite.Close();
         }
     }
 }
