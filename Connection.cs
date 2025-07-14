@@ -7,6 +7,7 @@ namespace Knv.MAAC241213.IO
     using System.IO;
     using System.IO.Ports;
     using System.Text;
+    using System.Web;
 
     public class OcxoStatus
     {
@@ -90,7 +91,7 @@ namespace Knv.MAAC241213.IO
         public event EventHandler ConnectionChanged;
         public event EventHandler ErrorHappened;
 
-        public Queue<string> TraceQueue = new Queue<string>();
+        public List<string> TraceList = new List<string>();
         public int TraceLines { get; private set; }
         
         SerialPort _sp;
@@ -119,7 +120,7 @@ namespace Knv.MAAC241213.IO
         }
 
 
-        private string _logDirectory;
+        private string _logDirectory = string.Empty;
 
 
         /// <summary>
@@ -141,7 +142,6 @@ namespace Knv.MAAC241213.IO
         /// <param name="port">pl: COM1</param>
         public void Open(string port)
         {
-            _logDirectory = string.Empty;
             try
             {
                 _sp = new SerialPort(port)
@@ -282,7 +282,7 @@ namespace Knv.MAAC241213.IO
 
         public void Close()
         {
-            TraceQueue.Enqueue(DateTime.Now.ToString(GenericTimestampFormat) + " " + "Serial Port is: " + "Close");
+            TraceList.Add(DateTime.Now.ToString(GenericTimestampFormat) + " " + "Serial Port is: " + "Close");
             _sp.Close();
             OnConnectionChanged();
         }
@@ -290,7 +290,7 @@ namespace Knv.MAAC241213.IO
         internal void TraceError(string errorMsg)
         {
             TraceLines++;
-            TraceQueue.Enqueue(DateTime.Now.ToString(GenericTimestampFormat) + " " + errorMsg);
+            TraceList.Add(DateTime.Now.ToString(GenericTimestampFormat) + " " + errorMsg);
         }
 
         internal void Trace(string msg)
@@ -298,13 +298,13 @@ namespace Knv.MAAC241213.IO
             if (!string.IsNullOrEmpty(_logDirectory))
             {
                 TraceLines++;
-                TraceQueue.Enqueue(DateTime.Now.ToString(GenericTimestampFormat) + " " + msg);
+                TraceList.Add(DateTime.Now.ToString(GenericTimestampFormat) + " " + msg);
             }
         }
 
         public void TraceClear()
         {
-            TraceQueue.Clear();
+            TraceList.Clear();
             TraceLines = 0;
         }
         protected virtual void OnConnectionChanged()
@@ -532,14 +532,15 @@ namespace Knv.MAAC241213.IO
             var fileWrite = new StreamWriter(filePath, true, Encoding.ASCII);
             fileWrite.NewLine = NewLine;
 
-            for (int i = 0; i < TraceQueue.Count; i++)
+            for (int i = 0; i < TraceList.Count; i++)
             {
-                string line = TraceQueue.Dequeue();
+                string line = TraceList[i];
                 fileWrite.Write(line + NewLine);
             }
 
             fileWrite.Flush();
             fileWrite.Close();
+            TraceList.Clear();
         }
     }
 }
