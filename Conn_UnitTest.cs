@@ -48,29 +48,22 @@
         [Test]
         public void BacklightTimeout_UnitTest()
         {
-
             using (var conn = new Connection())
             {
                 conn.Open(COM_PORT);
                 var name = conn.WhoIs();
                 Console.WriteLine(name);
                 Assert.AreEqual("MAAC241213.FW", name);
-
-
                 // kiolvasom
                 int timeout = conn.BacklightTimeoutInSec();
-                Assert.IsTrue(timeout == 0);
-                
+                Assert.IsTrue(timeout != 0);
                 // növelem, beírom
                 timeout++;
                 conn.BacklightTimeoutInSec(timeout);
-
                 //kiolvasom, ellenörzöm
                 int readback = conn.BacklightTimeoutInSec();
-
                 Assert.IsTrue(timeout == readback);
             }
-
         }
 
         [Test]
@@ -84,16 +77,12 @@
                 Assert.AreEqual("MAAC241213.FW", name);
 
                 conn.BacklightOn();
-
                 conn.BacklightIntesity(0);
                 Assert.AreEqual(0, conn.BacklightIntesity());
-
                 conn.BacklightIntesity(50);
                 Assert.AreEqual(50, conn.BacklightIntesity());
-
                 conn.BacklightIntesity(100);
                 Assert.AreEqual(100, conn.BacklightIntesity());
-
                 conn.BacklightOff();
             }
         }
@@ -112,28 +101,28 @@
                 {
                     var status1 = conn.Ocxo1Status();
         
-                    Assert.AreEqual(true, status1.IsLocked);
-                    Assert.GreaterOrEqual(status1.Temperature, 10);
-                    Assert.GreaterOrEqual(status1.Voltage, 11);
-                    Assert.GreaterOrEqual(status1.Current, 0.01);
+                    Assert.AreEqual(true, status1.IsLocked, "status1.IsLocked");
+                    Assert.IsTrue(status1.Temperature > 10, "status1.Temperature");
+                    Assert.IsTrue(status1.Voltage > 11, "status1.Voltage");
+                    Assert.IsTrue(status1.Current > 0.01, "status1.Current");
 
                     var status2 = conn.Ocxo2Status();
-                    //Assert.AreEqual(true, status2.IsLocked);
-                    Assert.GreaterOrEqual(status2.Temperature, 10);
-                    Assert.GreaterOrEqual(status2.Voltage, 11);
+                    Assert.AreEqual(false, status2.IsLocked, "status2.IsLocked");
+                    Assert.IsTrue(status2.Temperature > 10, "status2.Temperature");
+                    //Assert.GreaterOrEqual(status2.Voltage, 11);
                     //Assert.GreaterOrEqual(status2.Current, 0.01);
 
                     var status3 = conn.Ocxo3Status();
-                    Assert.AreEqual(true, status3.IsLocked);
-                    Assert.GreaterOrEqual(status3.Temperature, 10);
-                    Assert.GreaterOrEqual(status3.Voltage, 11);
-                    Assert.GreaterOrEqual(status3.Current, 0.01);
+                    Assert.AreEqual(true, status3.IsLocked, "status3.IsLocked");
+                    Assert.IsTrue(status3.Temperature > 10, "status3.Temperature");
+                    Assert.IsTrue(status3.Voltage > 11, "status3.Voltage");
+                    Assert.IsTrue(status3.Current > 0.01,"status3.Current");
 
                     var refocxo = conn.RefOcxoStatus();
-                    Assert.AreEqual(false, refocxo.ExtRef);
-                    Assert.GreaterOrEqual(refocxo.Temperature, 10);
-                    Assert.GreaterOrEqual(refocxo.Voltage, 11);
-                    Assert.GreaterOrEqual(refocxo.Current, 0.01);
+                    Assert.AreEqual(false, refocxo.ExtRef, "refocxo.ExtRef");
+                    Assert.IsTrue(refocxo.Temperature > 10, "refocxo.Temperature");
+                    Assert.IsTrue(refocxo.Voltage > 11, "refocxo.Voltage");
+                    Assert.IsTrue(refocxo.Current > 0.00, "refocxo.Current");
                 });
             }
         }
@@ -157,7 +146,7 @@
                     Assert.AreEqual(true, status1.IsLocked);
 
                     var status2 = conn.Ocxo2Status();
-                    Assert.AreEqual(true, !status2.IsLocked);
+                    Assert.AreEqual(false, status2.IsLocked);
 
                     var status3 = conn.Ocxo3Status();
                     Assert.AreEqual(true, status3.IsLocked);

@@ -425,7 +425,8 @@ namespace Knv.MAAC241213.IO
         }
 
         /// <summary>
-        /// Vissza adja azt az időt másodpercben ami után a kijelző biztos bekpacsol, a PC bekapcsolásától számítva.
+        /// Vissza adja azt az időt másodpercben ami után a kijelző biztos bekpacsol, a PC bekapcsolásától számítva. <br/>
+        /// Ciklikus írása nem ajánlott, mivel hardveres eeprom írással jár, aminek véges az írási ciklusa
         /// </summary>
         /// <returns></returns>
         public int BacklightTimeoutInSec()
