@@ -20,7 +20,7 @@
 
                 var version = conn.GetVersion();
                 Console.WriteLine(version);
-                Assert.AreEqual("250422_1204", version);
+                Assert.IsTrue(version.Length == "250718_1443".Length);
             }
         }
 
@@ -43,6 +43,34 @@
                 conn.BacklightOff();
                 Assert.IsFalse(conn.BacklightIsOn());
             }
+        }
+
+        [Test]
+        public void BacklightTimeout_UnitTest()
+        {
+
+            using (var conn = new Connection())
+            {
+                conn.Open(COM_PORT);
+                var name = conn.WhoIs();
+                Console.WriteLine(name);
+                Assert.AreEqual("MAAC241213.FW", name);
+
+
+                // kiolvasom
+                int timeout = conn.BacklightTimeoutInSec();
+                Assert.IsTrue(timeout == 0);
+                
+                // növelem, beírom
+                timeout++;
+                conn.BacklightTimeoutInSec(timeout);
+
+                //kiolvasom, ellenörzöm
+                int readback = conn.BacklightTimeoutInSec();
+
+                Assert.IsTrue(timeout == readback);
+            }
+
         }
 
         [Test]

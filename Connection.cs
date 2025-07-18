@@ -80,7 +80,6 @@ namespace Knv.MAAC241213.IO
 
     public class Connection : IDisposable
     {
-
         public Connection()
         {
             TraceLines = 0;
@@ -425,6 +424,29 @@ namespace Knv.MAAC241213.IO
             return false;
         }
 
+        /// <summary>
+        /// Vissza adja azt az időt másodpercben ami után a kijelző biztos bekpacsol, a PC bekapcsolásától számítva.
+        /// </summary>
+        /// <returns></returns>
+        public int BacklightTimeoutInSec()
+        {
+            var resp = WriteRead("BLIGHT:TIMEOUT?");
+            if (resp == null)
+                return -1;
+            else if (int.TryParse(resp, NumberStyles.Integer, CultureInfo.GetCultureInfo("en-US"), out var retval))
+                return retval;
+            else
+                return -1;
+        }
+
+        /// <summary>
+        /// Beállíthatod azt az időt ami a PC bekapcsolásától számítva a kijelző biztos bekapcsolódik.
+        /// </summary>
+        /// <param name="seconds"></param>
+        public void BacklightTimeoutInSec(int seconds) 
+        {
+            WriteRead($"BLIGHT:TIMEOUT {seconds:N2}");
+        }
 
         /// <summary>
         /// Az OCXO1-es Státusza <br/>
